@@ -1,0 +1,53 @@
+trigger:
+- main
+
+stages:
+
+# ================= BUILD =================
+- stage: Build
+  jobs:
+  - job: Build
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+
+    - task: Npm@1
+      inputs:
+        command: 'install'
+
+    - task: Npm@1
+      inputs:
+        command: 'custom'
+        customCommand: 'run build'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/build'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+# ================= DEPLOY =================
+- stage: Deploy
+
+  dependsOn: Build
+
+  jobs:
+  - job: Deploy
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+
+    - download: current
+      artifact: drop
+
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: 'Subscription 1(2)(fb5034dc-a956-48aa-aaab-8ca1f29e3428)'
+        appType: 'webAppLinux'
+        appName: 'mypractice'
+        package: '$(Pipeline.Workspace)/drop'
+        runtimeStack: 'STATICSITE|1.0'
